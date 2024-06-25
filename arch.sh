@@ -343,7 +343,7 @@ setup_ext4() {
 
 setup_swap() {
     if [[ "${filesystem}" =~ ("BTRFS"|"BTRFS LUKS") ]]; then
-        mount_options_base_swap="rw,x-mount.mkdir,compress=no,space_cache=v2"
+        local mount_options_base_swap="rw,x-mount.mkdir,compress=no,space_cache=v2"
         mount_options_swap="${mount_options_base_swap}${ssd:+,ssd}"
 
         mount -t btrfs -o ${mount_options_swap},subvol=@swap LABEL=systemRoot /mnt/swap
@@ -385,7 +385,7 @@ initial_setup() {
         microcode="amd-ucode"
     fi
 
-    pacstrap -K /mnt base linux-hardened linux-firmware linux-headers ${microcode} dosfstools efibootmgr archlinux-keyring base-devel btrfs-progs sudo zsh git pacman-contrib tlp pbzip2 pigz
+    pacstrap -K /mnt base linux-hardened linux-firmware linux-headers ${microcode} dosfstools efibootmgr archlinux-keyring base-devel btrfs-progs nano sudo zsh git pacman-contrib tlp
 
     cp /etc/pacman.d/mirrorlist /mnt/etc/pacman.d/mirrorlist
     sed -i 's/^#ParallelDownloads/ParallelDownloads/' /mnt/etc/pacman.conf
@@ -491,19 +491,9 @@ EOF
         lib32-mesa
 
     sed -i 's/^CFLAGS/CFLAGS="-march=native -mtune=native -O2 -pipe -fstack-protector-strong --param=ssp-buffer-size=4 -fno-plt"/' /etc/makepkg.conf
-    sed -i 's/^CXXFLAGS/CXXFLAGS="${CFLAGS}"/' /etc/makepkg.conf
     sed -i 's/^#RUSTFLAGS/RUSTFLAGS="-C opt-level=2 -C target-cpu=native"/' /etc/makepkg.conf
     sed -i 's/^#BUILDDIR/BUILDDIR=\/tmp\/makepkg makepkg/' /etc/makepkg.conf
     sed -i 's/^#MAKEFLAGS/MAKEFLAGS="-j$(getconf _NPROCESSORS_ONLN) --quiet"/' /etc/makepkg.conf
-    sed -i 's/^COMPRESSGZ/COMPRESSGZ=(pigz -c -f -n)/' /etc/makepkg.conf
-    sed -i 's/^COMPRESSBZ2/COMPRESSBZ2=(pbzip2 -c -f)/' /etc/makepkg.conf
-    sed -i 's/^COMPRESSXZ/COMPRESSXZ=(xz -T "$(getconf _NPROCESSORS_ONLN)" -c -z --best -)/' /etc/makepkg.conf
-    sed -i 's/^COMPRESSZST/COMPRESSZST=(zstd -c -z -q --ultra -T0 -22 -)/' /etc/makepkg.conf
-    sed -i 's/^COMPRESSLZ/COMPRESSLZ=(lzip -c -f)/' /etc/makepkg.conf
-    sed -i 's/^COMPRESSLRZ/COMPRESSLRZ=(lrzip -9 -q)/' /etc/makepkg.conf
-    sed -i 's/^COMPRESSLZO/COMPRESSLZO=(lzop -q --best)/' /etc/makepkg.conf
-    sed -i 's/^COMPRESSZ/COMPRESSZ=(compress -c -f)/' /etc/makepkg.conf
-    sed -i 's/^COMPRESSLZ4/COMPRESSLZ4=(lz4 -q --best)/' /etc/makepkg.conf
 }
 
 chroot_boot_setup() {
@@ -519,8 +509,7 @@ chroot_boot_setup() {
     efibootmgr --create --disk ${disk} --part 1 --label "Arch Linux" --loader 'EFI\Linux\arch-linux-hardened.efi' --unicode
     efibootmgr --create --disk ${disk} --part 1 --label "Arch Linux Fallback" --loader 'EFI\Linux\arch-linux-hardened-fallback.efi' --unicode
 
-    PARTITION_UUID=$(blkid ${partition2} | awk -F '"' '{print $2}')
-    echo "rd.luks.name=${PARTITION_UUID}=systemRoot root=/dev/mapper/systemRoot rootfstype=btrfs rootflags=subvol=@ quiet rw" > /etc/kernel/cmdline
+    echo "rd.luks.name=$(blkid -s UUID -o value ${partition2})=systemRoot root=/dev/mapper/systemRoot rootfstype=btrfs rootflags=subvol=@ quiet rw" > /etc/kernel/cmdline
 
     mkinitcpio -P
 }
