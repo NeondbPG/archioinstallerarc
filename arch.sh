@@ -478,6 +478,7 @@ TLP_PERSISTENT_DEFAULT=1
 RUNTIME_PM_ON_AC=auto
 USB_AUTOSUSPEND=0
 EOF
+   sed -i 's/^#MAKEFLAGS/MAKEFLAGS="-j$(getconf _NPROCESSORS_ONLN) --quiet"/' /etc/makepkg.conf
 
     pacman -S --needed --noconfirm \
         libva-intel-driver \
