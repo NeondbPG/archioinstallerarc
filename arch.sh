@@ -464,8 +464,6 @@ chroot_mkinitcpio_setup() {
         sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole block filesystems fsck)/' /etc/mkinitcpio.conf
         ;;
     esac
-
-    mkinitcpio -P
 }
 
 chroot_other_setup() {
@@ -489,11 +487,6 @@ EOF
         libva-intel-driver \
         libva-utils \
         lib32-mesa
-
-    sed -i 's/^CFLAGS/CFLAGS="-march=native -mtune=native -O2 -pipe -fstack-protector-strong --param=ssp-buffer-size=4 -fno-plt"/' /etc/makepkg.conf
-    sed -i 's/^#RUSTFLAGS/RUSTFLAGS="-C opt-level=2 -C target-cpu=native"/' /etc/makepkg.conf
-    sed -i 's/^#BUILDDIR/BUILDDIR=\/tmp\/makepkg makepkg/' /etc/makepkg.conf
-    sed -i 's/^#MAKEFLAGS/MAKEFLAGS="-j$(getconf _NPROCESSORS_ONLN) --quiet"/' /etc/makepkg.conf
 }
 
 chroot_boot_setup() {
@@ -505,9 +498,6 @@ chroot_boot_setup() {
     sed -i 's/^#default_options="--splash \/usr\/share\/systemd\/bootctl\/splash-arch.bmp"/default_options="--splash \/usr\/share\/systemd\/bootctl\/splash-arch.bmp"/' /etc/mkinitcpio.d/linux-hardened.preset
     sed -i 's/^fallback_image="\/boot\/initramfs-linux-hardened-fallback.img"/#fallback_image="\/boot\/initramfs-linux-hardened-fallback.img"/' /etc/mkinitcpio.d/linux-hardened.preset
     sed -i 's/^#fallback_uki="\/efi\/EFI\/Linux\/arch-linux-hardened-fallback.efi"/fallback_uki="\/efi\/EFI\/Linux\/arch-linux-hardened-fallback.efi"/' /etc/mkinitcpio.d/linux-hardened.preset
-
-    efibootmgr --create --disk ${disk} --part 1 --label "Arch Linux" --loader 'EFI\Linux\arch-linux-hardened.efi' --unicode
-    efibootmgr --create --disk ${disk} --part 1 --label "Arch Linux Fallback" --loader 'EFI\Linux\arch-linux-hardened-fallback.efi' --unicode
 
     echo "rd.luks.name=$(blkid -s UUID -o value ${partition2})=systemRoot root=/dev/mapper/systemRoot rootfstype=btrfs rootflags=subvol=@ quiet rw" > /etc/kernel/cmdline
 
